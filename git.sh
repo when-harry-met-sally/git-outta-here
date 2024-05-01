@@ -1,6 +1,6 @@
 #!/bin/zsh
 
-function git() {
+function git_wrapper() {
     local original_command="/usr/bin/git"
     local current_dir="$PWD"
     local config_file="${XDG_CONFIG_HOME:-$HOME/.config}/git-outta-here.json"
@@ -42,3 +42,5 @@ function git() {
     # Execute the Git command with the dynamically set global configuration
     command $original_command "$@"
 }
+
+git_wrapper

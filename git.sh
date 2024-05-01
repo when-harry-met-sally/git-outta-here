@@ -43,4 +43,4 @@ function git_wrapper() {
     command $original_command "$@"
 }
 
-git_wrapper
+git_wrapper "$@"

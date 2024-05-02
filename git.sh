@@ -1,46 +1,46 @@
-#!/bin/sh
+#!/bin/zsh
 
-git_wrapper() {
-    original_command="/usr/bin/git"
-    current_dir="$PWD"
-    config_file="${XDG_CONFIG_HOME:-$HOME/.config}/git-outta-here.json"
-    git_config="$HOME/.gitconfig"
+function git_wrapper() {
+	local original_command="/usr/bin/git"
+	local current_dir="$PWD"
+	local config_file="${XDG_CONFIG_HOME:-$HOME/.config}/git-outta-here.json"
+	local git_config="$HOME/.gitconfig"
 
-    ORANGE="\033[38;5;208m"
-    BLUE="\033[0;34m"
-    NC="\033[0m"
+	local ORANGE="\033[38;5;208m"
+	local BLUE="\033[0;34m"
+	local NC="\033[0m"
 
-    # Fetch the debug setting from the JSON configuration
-    debug=$(jq -r '.debug // false' "$config_file")
+	# Fetch the debug setting from the JSON configuration
+	local debug=$(jq -r '.debug // false' "$config_file")
 
-    # Load the default git configuration
-    git_config=$(jq -r '.directories[] | select(.path=="/*") | .config' "$config_file")
-    git_config="${git_config/#\~/$HOME}"
+	# Load the default git configuration
+	git_config=$(jq -r '.directories[] | select(.path=="/*") | .config' "$config_file")
+	git_config="${git_config/#\~/$HOME}"
 
-    # Find the specific git configuration for the current directory
-    jq -c '.directories[]' "$config_file" | while IFS= read -r line; do
-        dir_pattern=$(echo "$line" | jq -r '.path')
-        config_path=$(echo "$line" | jq -r '.config')
+	# Find the specific git configuration for the current directory
+	while IFS= read -r line; do
+		dir_pattern=$(echo "$line" | jq -r '.path')
+		config_path=$(echo "$line" | jq -r '.config')
 
-        # Manually expand tilde to home directory
-        config_path="${config_path/#\~/$HOME}"
+		# Manually expand tilde to home directory
+		config_path="${config_path/#\~/$HOME}"
 
-        if echo "$current_dir" | grep -q "$dir_pattern"; then
-            git_config="$config_path"
-            break
-        fi
-    done
+		if [[ "$current_dir" == *"$dir_pattern"* ]]; then
+			git_config="$config_path"
+			break
+		fi
+	done < <(jq -c '.directories[]' "$config_file")
 
-    export GIT_CONFIG_GLOBAL="$git_config"
+	export GIT_CONFIG_GLOBAL="$git_config"
 
-    # Conditionally display debug information
-    if [ "$debug" = "true" ]; then
-        echo -e "${ORANGE}[git-outta-here]${NC}${BLUE}$GIT_CONFIG_GLOBAL${NC}"
-        echo ""
-    fi
+	# Conditionally display debug information
+	if [[ "$debug" == true ]]; then
+		echo -e "${ORANGE}[git-outta-here]${NC}${BLUE}$GIT_CONFIG_GLOBAL${NC}"
+		echo ""
+	fi
 
-    # Execute the Git command with the dynamically set global configuration
-    $original_command "$@"
+	# Execute the Git command with the dynamically set global configuration
+	command $original_command "$@"
 }
 
 git_wrapper "$@"

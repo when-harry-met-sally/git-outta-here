@@ -1,17 +1,17 @@
-#!/bin/zsh
+#!/bin/sh
 
-function git_wrapper() {
-    local original_command="/usr/bin/git"
-    local current_dir="$PWD"
-    local config_file="${XDG_CONFIG_HOME:-$HOME/.config}/git-outta-here.json"
-    local git_config="$HOME/.gitconfig"
+git_wrapper() {
+    original_command="/usr/bin/git"
+    current_dir="$PWD"
+    config_file="${XDG_CONFIG_HOME:-$HOME/.config}/git-outta-here.json"
+    git_config="$HOME/.gitconfig"
 
-    local ORANGE="\033[38;5;208m"
-    local BLUE="\033[0;34m"
-    local NC="\033[0m"
+    ORANGE="\033[38;5;208m"
+    BLUE="\033[0;34m"
+    NC="\033[0m"
 
     # Fetch the debug setting from the JSON configuration
-    local debug=$(jq -r '.debug // false' "$config_file")
+    debug=$(jq -r '.debug // false' "$config_file")
 
     # Load the default git configuration
     git_config=$(jq -r '.directories[] | select(.path=="/*") | .config' "$config_file")
@@ -25,7 +25,7 @@ function git_wrapper() {
         # Manually expand tilde to home directory
         config_path="${config_path/#\~/$HOME}"
 
-        if [[ "$current_dir" == *"$dir_pattern"* ]]; then
+        if echo "$current_dir" | grep -q "$dir_pattern"; then
             git_config="$config_path"
             break
         fi
@@ -34,13 +34,13 @@ function git_wrapper() {
     export GIT_CONFIG_GLOBAL="$git_config"
 
     # Conditionally display debug information
-    if [[ "$debug" == true ]]; then
+    if [ "$debug" = "true" ]; then
         echo -e "${ORANGE}[git-outta-here]${NC}${BLUE}$GIT_CONFIG_GLOBAL${NC}"
         echo ""
     fi
 
     # Execute the Git command with the dynamically set global configuration
-    command $original_command "$@"
+    $original_command "$@"
 }
 
 git_wrapper "$@"

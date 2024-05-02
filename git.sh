@@ -35,8 +35,7 @@ git_wrapper() {
 
     # Conditionally display debug information
     if [ "$debug" = "true" ]; then
-        echo -e "${ORANGE}[git-outta-here]${NC}${BLUE}$GIT_CONFIG_GLOBAL${NC}"
-        echo ""
+        printf "%b[git-outta-here]%b%b%s%b\n\n" "$ORANGE" "$NC" "$BLUE" "$GIT_CONFIG_GLOBAL" "$NC"
     fi
 
     # Execute the Git command with the dynamically set global configuration

@@ -18,7 +18,7 @@ git_wrapper() {
     git_config="${git_config/#\~/$HOME}"
 
     # Find the specific git configuration for the current directory
-    while IFS= read -r line; do
+    jq -c '.directories[]' "$config_file" | while IFS= read -r line; do
         dir_pattern=$(echo "$line" | jq -r '.path')
         config_path=$(echo "$line" | jq -r '.config')
 
@@ -29,7 +29,7 @@ git_wrapper() {
             git_config="$config_path"
             break
         fi
-    done < <(jq -c '.directories[]' "$config_file")
+    done
 
     export GIT_CONFIG_GLOBAL="$git_config"
 

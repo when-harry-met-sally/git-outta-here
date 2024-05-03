@@ -70,4 +70,4 @@ I need to investigate:
 - add a utility that turns http requests into ssh?
 - async git stuff, with queues, for llm ai commits
 - remove the jq config file, and rely on environment variables.
-- simply have this as a tool that allows for pre git commits, and have the 
+- simply have this as a tool that allows for pre git commits

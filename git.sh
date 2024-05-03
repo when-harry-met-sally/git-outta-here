@@ -1,46 +1,55 @@
 #!/bin/zsh
 
 function git_wrapper() {
-	local original_command="/usr/bin/git"
-	local current_dir="$PWD"
-	local config_file="${XDG_CONFIG_HOME:-$HOME/.config}/git-outta-here.json"
-	local git_config="$HOME/.gitconfig"
+    local original_command="/usr/bin/git"
+    local current_dir="$PWD"
+    local git_config="$HOME/.gitconfig"
+    local config_json="$GIT_CONFIG_JSON"
+    local log_file="$HOME/.git-outta-here-log"
 
-	local ORANGE="\033[38;5;208m"
-	local BLUE="\033[0;34m"
-	local NC="\033[0m"
+    # Process JSON once to get configurations and debug setting
+    local configs=$(echo "$config_json" | jq -r '.directories[] | "\(.path) \(.config)"')
+    local debug=$(echo "$config_json" | jq -r '.debug // false')
 
-	# Fetch the debug setting from the JSON configuration
-	local debug=$(jq -r '.debug // false' "$config_file")
+    while IFS=' ' read -r dir_pattern config_path; do
+        config_path="${config_path/#\~/$HOME}"  # Expand tilde
 
-	# Load the default git configuration
-	git_config=$(jq -r '.directories[] | select(.path=="/*") | .config' "$config_file")
-	git_config="${git_config/#\~/$HOME}"
+        if [[ "$current_dir" == *"$dir_pattern"* ]]; then
+            git_config="$config_path"
+            break
+        fi
+    done <<< "$configs"
 
-	# Find the specific git configuration for the current directory
-	while IFS= read -r line; do
-		dir_pattern=$(echo "$line" | jq -r '.path')
-		config_path=$(echo "$line" | jq -r '.config')
+    export GIT_CONFIG_GLOBAL="$git_config"
 
-		# Manually expand tilde to home directory
-		config_path="${config_path/#\~/$HOME}"
+    # Call debug logging with current context
+    log_debug "$debug" "$current_dir" "$git_config" "$log_file"
 
-		if [[ "$current_dir" == *"$dir_pattern"* ]]; then
-			git_config="$config_path"
-			break
-		fi
-	done < <(jq -c '.directories[]' "$config_file")
+    # Execute the Git command
+    command $original_command "$@"
+}
 
-	export GIT_CONFIG_GLOBAL="$git_config"
+function log_debug {
+    local debug=$1
+    local current_dir=$2
+    local git_config=$3
+    local log_file=$4
 
-	# Conditionally display debug information
-	if [[ "$debug" == true ]]; then
-		echo -e "${ORANGE}[git-outta-here]${NC}${BLUE}$GIT_CONFIG_GLOBAL${NC}"
-		echo ""
-	fi
+    [[ "$debug" == true ]] || return
 
-	# Execute the Git command with the dynamically set global configuration
-	command $original_command "$@"
+    # Run the entire log operation in the background
+    {
+        # Buffer the log output
+        local log_output="Debug Info: $(date)\nCurrent Directory: $current_dir\nGit Configuration Applied: $git_config\n-----------------------------------\n"
+
+        # Append new log to the file
+        echo "$log_output" >> "$log_file"
+
+        # Ensure log file does not exceed 100 characters
+        # This uses tail to keep only the last 100 characters of the log file
+        local log_content=$(tail -c 100 "$log_file")
+        echo "$log_content" > "$log_file"
+    } &
 }
 
 git_wrapper "$@"

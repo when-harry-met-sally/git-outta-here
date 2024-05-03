@@ -71,4 +71,3 @@ I need to investigate:
 - async git stuff, with queues, for llm ai commits
 - remove the jq config file, and rely on environment variables.
 - simply have this as a tool that allows for pre git commits, and have the 
-- logging

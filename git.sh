@@ -22,8 +22,8 @@ function git_wrapper() {
 
     export GIT_CONFIG_GLOBAL="$git_config"
 
-    # Call debug logging with current context
-    log_debug "$debug" "$current_dir" "$git_config" "$log_file"
+    # Call debug logging with current context and original command
+    log_debug "$debug" "$current_dir" "$git_config" "$log_file" "$original_command" "$@"
 
     # Execute the Git command
     command $original_command "$@"
@@ -34,20 +34,24 @@ function log_debug {
     local current_dir=$2
     local git_config=$3
     local log_file=$4
+    local original_command=$5
+    shift 5  # Shift the first five arguments to get only the Git-specific ones
+
+    local git_command_line="$original_command $*"
 
     [[ "$debug" == true ]] || return
 
     # Run the entire log operation in the background
     {
         # Buffer the log output
-        local log_output="Debug Info: $(date)\nCurrent Directory: $current_dir\nGit Configuration Applied: $git_config\n-----------------------------------\n"
+
+        local log_output="Debug Info: $(date)\nCurrent Directory: $current_dir\nGit Configuration Applied: $git_config\nOriginal Command: $git_command_line\n-----------------------------------\n"
 
         # Append new log to the file
         echo "$log_output" >> "$log_file"
 
-        # Ensure log file does not exceed 100 characters
-        # This uses tail to keep only the last 100 characters of the log file
-        local log_content=$(tail -c 100 "$log_file")
+        # Ensure log file does not exceed 1000 characters
+        local log_content=$(tail -c 10000 "$log_file")
         echo "$log_content" > "$log_file"
     } &
 }
